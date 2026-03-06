@@ -8,6 +8,11 @@
 import SwiftUI
 
 @MainActor
+public protocol ValidatableField {
+    func checkIsValid() async -> Bool
+}
+
+@MainActor
 @propertyWrapper
 public struct Validate: DynamicProperty {
     @State public var value: String
@@ -49,6 +54,35 @@ public struct Validate: DynamicProperty {
         self.rules = rules
         
         self.attributeName = rules.lazy.compactMap(\.extractedName).first ?? "field"
+    }
+    
+    static func validateAll(_ fields: any ValidatableField...) async -> Bool {
+        let mirror = Mirror(reflecting: self)
+        var isFormValid: Bool = true
+        
+        for child in mirror.children {
+            if let field = child.value as? any ValidatableField {
+                let isFieldValid = await field.checkIsValid()
+                if !isFieldValid {
+                    isFormValid = false
+                }
+            }
+        }
+        
+        return isFormValid
+    }
+    
+    static func validateOnly(_ fields: any ValidatableField...) async -> Bool {
+        var isFormValid: Bool = true
+        
+        for field in fields {
+            let isFiledValid = await field.checkIsValid()
+            if !isFiledValid {
+                isFormValid = false
+            }
+        }
+        
+        return isFormValid
     }
     
     public func validate(_ value: String) async {
@@ -161,5 +195,15 @@ public struct Validate: DynamicProperty {
     private func formatMessage(_ customMessage: String?, defaultMessage: String) -> String {
         let message = customMessage ?? defaultMessage
         return message.replacingOccurrences(of: ":attribute", with: attributeName)
+    }
+}
+
+extension Validate: ValidatableField {
+    public func checkIsValid() async -> Bool {
+        // Check the value.
+        await self.validate(wrappedValue)
+        
+        // Return true if there are not erorr
+        return self.error == nil
     }
 }
