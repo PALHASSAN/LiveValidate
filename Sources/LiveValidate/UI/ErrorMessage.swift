@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct ErrorMessage: View {
+public struct ErrorMessage: View {
     let error: String?
     @State private var shakeEffect: CGFloat = 0
     

@@ -8,15 +8,15 @@
 import Foundation
 
 @MainActor
-public final class Debouncer {
+final class Debouncer {
     private var task: Task<Void, Never>?
     private let delay: TimeInterval
     
-    public init(delay: TimeInterval = 0.5) {
+    init(delay: TimeInterval = 0.5) {
         self.delay = delay
     }
     
-    public func callAsFunction(action: @escaping @MainActor @Sendable () async -> Void) {
+    func callAsFunction(action: @escaping @MainActor @Sendable () async -> Void) {
         task?.cancel()
         
         task = Task {

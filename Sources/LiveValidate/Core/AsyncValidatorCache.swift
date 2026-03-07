@@ -7,12 +7,12 @@
 
 import Foundation
 
-public actor AsyncValidatorCache {
+actor AsyncValidatorCache {
     private var tasks: [String: Task<Bool, Never>] = [:]
     
-    public init() {}
+    init() {}
     
-    public func execute(key: String, operation: @escaping @Sendable () async -> Bool) async -> Bool {
+    func execute(key: String, operation: @escaping @Sendable () async -> Bool) async -> Bool {
         if let existingTask = tasks[key] {
             return await existingTask.value
         }
@@ -22,6 +22,8 @@ public actor AsyncValidatorCache {
         }
         
         tasks[key] = task
+        tasks.removeValue(forKey: key)
+        
         return await task.value
     }
 }
