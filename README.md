@@ -62,5 +62,34 @@ ValidateConfig.setup(engine: .api(url: "http://yourapilink/"))
 ValidateConfig.setup(engine: .swiftData(container: yourSwiftData)))
 ```
 
+
 > [!NOTE]
 > Sometimes you need to trigger validation manually, such as when the user clicks a "Submit" button, to ensure all fields are valid before proceeding. By default, LiveValidate handles checks in real-time, but these static methods allow you to guard final submission logic.
+
+#### **A: validateOnly**
+If you need to verify a specific group of fields—such as a single section of a multi-step form—use the .validateOnly(_:) method. You must pass the projected values (the ones prefixed with $).
+```swift
+Button("Login") {
+    Task {
+        // Triggers validation for specific fields manually
+        let isValid = await Validate.validateOnly($email, $password, etc.)
+        
+        if isValid {
+            // Proceed with login logic
+        }
+    }
+}
+```
+
+#### **B: validateAll**
+For a complete form check before final submission, use the .validateAll(_:) method to ensure every defined @Validate field in your view meets its criteria.
+```swift
+Button("Register") {
+    Task {
+        // Checks the validity of all form fields simultaneously
+        if await Validate.validateAll($email, $phone, $username) {
+            print("Form is valid and ready for submission!")
+        }
+    }
+}
+```
