@@ -56,7 +56,7 @@ To validate a field, apply the @Validate property wrapper to your @State variabl
 #### **A: Define Rules**
 List the rules you want to apply in the order they should be checked:
 ```swift
-@Validate(.name("Username"), .required(), .min(3), .unique(User.self, field: \.username))
+@Validate(.name("Username"), .required(), .min(3), .unique(model: User.self, field: \.username))
 var username: String = ""
 ```
 
