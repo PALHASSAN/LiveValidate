@@ -62,5 +62,5 @@ ValidateConfig.setup(engine: .api(url: "http://yourapilink/"))
 ValidateConfig.setup(engine: .swiftData(container: yourSwiftData)))
 ```
 
-[!NOTE]
-Sometimes you need to trigger validation manually, such as when the user clicks a "Submit" button, to ensure all fields are valid before proceeding. By default, LiveValidate handles checks in real-time, but these static methods allow you to guard final submission logic.
+> [!NOTE]
+> Sometimes you need to trigger validation manually, such as when the user clicks a "Submit" button, to ensure all fields are valid before proceeding. By default, LiveValidate handles checks in real-time, but these static methods allow you to guard final submission logic.
