@@ -8,8 +8,8 @@
 import SwiftUI
 
 struct TestView: View {
-    @Validate(.name("Username"), .required("Please enter your name."), .alphaDash(), .min(4))
-    var username: String = ""
+    @Validate(.name("Email"), .required(), .email(), .unique(table: "users", column: "email"))
+    var email: String = ""
     
     @Validate(.name("Phone Number"), .required(), .regex("^05[0-9]{8}$"))
     var phone: String = ""
@@ -22,9 +22,9 @@ struct TestView: View {
             Form {
                 Section("Login Form") {
                     VStack(alignment: .leading) {
-                        TextField("Username", text: $username)
-                            .textInputAutocapitalization(.characters)
-                        ErrorMessage($username.error)
+                        TextField("Email", text: $email)
+                            .textInputAutocapitalization(.never)
+                        ErrorMessage($email.error)
                     }
                     VStack(alignment: .leading) {
                         TextField("Phone number (05xxxxxxxx)", text: $phone)
@@ -78,5 +78,6 @@ struct TestView: View {
 }
 
 #Preview {
+    let _ = ValidateConfig.setup(engine: .api(url: "http://172.20.10.8:8000/api/check-email"))
     TestView()
 }

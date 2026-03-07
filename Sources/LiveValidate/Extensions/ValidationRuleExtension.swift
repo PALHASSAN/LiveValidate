@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import SwiftData
 
 extension ValidationRule {
     func evaluate(_ value: String, attribute: String, cache: AsyncValidatorCache) async -> String? {
@@ -44,11 +45,6 @@ extension ValidationRule {
         case .email(let customMsg):
             return !isValidEmail(value) ? format(customMsg, "The :attribute must be a valid email address.", attribute) : nil
             
-        case .unique(let check, let customMsg):
-            let trimmedValue = value.trimmingCharacters(in: .whitespaces)
-            let isUnique = await cache.execute(key: "unique_\(trimmedValue)") { await check(value) }
-            return !isUnique ? format(customMsg, "The :attribute has already been taken.", attribute) : nil
-            
         case .regex(let pattern, let customMsg):
             if value.isEmpty { return nil }
             let predicate = NSPredicate(format: "SELF MATCHES %@", pattern)
@@ -67,6 +63,93 @@ extension ValidationRule {
         case .inList(let values, let customMsg):
             let isInvalid = !value.isEmpty && !values.contains(value)
             return isInvalid ? format(customMsg, "The selected :attribute is invalid.", attribute) : nil
+            
+        case ._uniqueAPI(let table, let column, let customMsg):
+            guard let engine = await ValidateConfig.activeEngine,
+                  case .api(let finalURL) = engine else { return nil }
+            
+            let trimmedValue = value.trimmingCharacters(in: .whitespaces)
+            let isUniqueResult = await cache.execute(key: "unique_\(table)_\(column)_\(trimmedValue)") {
+                
+                guard let url = URL(string: finalURL) else {
+                    print("🛑 Error: Invalid URL -> \(finalURL)")
+                    return false
+                }
+                
+                var request = URLRequest(url: url)
+                request.httpMethod = "POST"
+                request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+                request.setValue("application/json", forHTTPHeaderField: "Accept")
+            
+                let payload: [String: Any] = [
+                    "table": table,
+                    "column": column,
+                    "value": trimmedValue,
+                    column: trimmedValue
+                ]
+                
+                request.httpBody = try? JSONSerialization.data(withJSONObject: payload)
+                
+                #if DEBUG
+                print("📡 Sending Request to: \(url.absoluteString)")
+                #endif
+              
+                if let body = String(data: request.httpBody ?? Data(), encoding: .utf8) {
+                    print("📦 Payload: \(body)")
+                }
+                
+                do {
+                    let (data, response) = try await URLSession.shared.data(for: request)
+                    
+                    if let httpResponse = response as? HTTPURLResponse {
+                        print("🌐 HTTP Status: \(httpResponse.statusCode)")
+                        
+                        if let rawJSON = String(data: data, encoding: .utf8) {
+                            print("📩 Raw Server Response: \(rawJSON)")
+                        }
+                        
+                        guard let httpResponse = response as? HTTPURLResponse,
+                              (200...299).contains(httpResponse.statusCode) else {
+                            #if DEBUG
+                            print("⚠️ Server returned error status.")
+                            #endif
+                            return false
+                        }
+                        
+                    }
+                    
+                    struct ServerResponse: Decodable {
+                        let isUnique: Bool
+                    }
+                    
+                    
+                    if let decoded = try? JSONDecoder().decode(ServerResponse.self, from: data) {
+                        return decoded.isUnique
+                    }
+                    
+                    return false
+                } catch {
+                    #if DEBUG
+                    print("❌ [Bolt] Network Error: \(error.localizedDescription)")
+                    #endif
+                    return false
+                }
+            }
+            return !isUniqueResult ? format(customMsg, "The :attribute has already been taken.", attribute) : nil
+            
+        case ._uniqueSwiftData(let modelName, let field, let customMsg):
+            guard let engine = await ValidateConfig.activeEngine else { return "⚠️ Prepare the Validate Config first" }
+            
+            guard case .swiftData(let container) = engine else { return nil }
+            
+            let trimmedValue = value.trimmingCharacters(in: .whitespaces)
+            let isUnique = await cache.execute(key: "unique_sd_\(modelName)_\(trimmedValue)") {
+                let _ = ModelContext(container)
+                
+                print("🔍 Searching in \(modelName) for \(trimmedValue) inside field \(field)")
+                return true
+            }
+            return !isUnique ? format(customMsg, "The :attribute has already been taken.", attribute) : nil
         }
     }
     
