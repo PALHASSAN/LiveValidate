@@ -17,3 +17,32 @@ https://github.com/alhassan/LiveValidate
 * **Strongly Typed:** Leverages Swift KeyPaths for safe database queries.
 
 ## 🛠 Supported Rules
+| Rule | Description |
+| :--- | :--- |
+| **`.name(String)`** | Set a custom attribute name for user-friendly error messages. (NOT required) |
+| **`.required()`** | Field cannot be empty or null. |
+| **`.email()`** | Validates standard email format. |
+| **`.unique(table: "table_name" column: "column_name")`** | Remote check via API POST request (Server-side). |
+| **`.unique(model:field:)`** | Local check via **SwiftData** KeyPath (On-device). |
+| **`.min(Int) / .max(Int)`** | Enforces minimum or maximum character length. |
+| **`.numeric() / .alpha()`** | Restricts input to numbers only or letters only. |
+| **`.digits(Int)`** | Requires a specific number of digits (e.g., OTP or Pin). |
+| **`.match(String)`** | Ensures the value matches another field (e.g., Password Confirm). |
+| **`.regex(Pattern)`** | Validates against a custom Regular Expression. |
+
+### 🚀 Usage Example
+```swift
+import SwiftUI
+import LiveValidate
+
+struct RegisterView: View {
+    @Validate(.name("Email"), .required(), .email(), .unique(table: "users", column: "email"))
+    var email: String = ""
+
+    var body: some View {
+        Form {
+            TextField("Email Address", text: $email)
+            ErrorMessage($email.error) // Built-in UI component
+        }
+    }
+}
