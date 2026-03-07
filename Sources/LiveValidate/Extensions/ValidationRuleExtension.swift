@@ -80,7 +80,7 @@ extension ValidationRule {
                 request.httpMethod = "POST"
                 request.setValue("application/json", forHTTPHeaderField: "Content-Type")
                 request.setValue("application/json", forHTTPHeaderField: "Accept")
-            
+                
                 let payload: [String: Any] = [
                     "table": table,
                     "column": column,
@@ -90,10 +90,10 @@ extension ValidationRule {
                 
                 request.httpBody = try? JSONSerialization.data(withJSONObject: payload)
                 
-                #if DEBUG
+#if DEBUG
                 print("📡 Sending Request to: \(url.absoluteString)")
-                #endif
-              
+#endif
+                
                 if let body = String(data: request.httpBody ?? Data(), encoding: .utf8) {
                     print("📦 Payload: \(body)")
                 }
@@ -110,9 +110,9 @@ extension ValidationRule {
                         
                         guard let httpResponse = response as? HTTPURLResponse,
                               (200...299).contains(httpResponse.statusCode) else {
-                            #if DEBUG
+#if DEBUG
                             print("⚠️ Server returned error status.")
-                            #endif
+#endif
                             return false
                         }
                         
@@ -129,27 +129,32 @@ extension ValidationRule {
                     
                     return false
                 } catch {
-                    #if DEBUG
+#if DEBUG
                     print("❌ [Bolt] Network Error: \(error.localizedDescription)")
-                    #endif
+#endif
                     return false
                 }
             }
             return !isUniqueResult ? format(customMsg, "The :attribute has already been taken.", attribute) : nil
             
-        case ._uniqueSwiftData(let modelName, let field, let customMsg):
-            guard let engine = await ValidateConfig.activeEngine else { return "⚠️ Prepare the Validate Config first" }
+        case ._uniqueSwiftData(let checkClosure, let customMsg):
             
-            guard case .swiftData(let container) = engine else { return nil }
+            guard let engine = await ValidateConfig.activeEngine,
+                  case .swiftData(let container) = engine else {
+                return "⚠️ Prepare ValidateConfig with .swiftData engine first"
+            }
             
             let trimmedValue = value.trimmingCharacters(in: .whitespaces)
-            let isUnique = await cache.execute(key: "unique_sd_\(modelName)_\(trimmedValue)") {
-                let _ = ModelContext(container)
+            
+            let isUniqueResult = await cache.execute(key: "unique_sd_\(trimmedValue)") {
+#if DEBUG
+                print("🗄️ Checking local SwiftData uniqueness for: \(trimmedValue)")
+#endif
                 
-                print("🔍 Searching in \(modelName) for \(trimmedValue) inside field \(field)")
-                return true
+                return await checkClosure(trimmedValue, container)
             }
-            return !isUnique ? format(customMsg, "The :attribute has already been taken.", attribute) : nil
+            
+            return !isUniqueResult ? format(customMsg, "The :attribute has already been taken locally.", attribute) : nil
         }
     }
     

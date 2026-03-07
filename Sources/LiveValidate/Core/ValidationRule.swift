@@ -29,7 +29,7 @@ public enum ValidationRule: @unchecked Sendable {
     case inList(_ values: [String], _ message: String? = nil)
     
     case _uniqueAPI(table: String, column: String, message: String?)
-    case _uniqueSwiftData(modelName: String, field: String, message: String?)
+    case _uniqueSwiftData(check: @Sendable (String, ModelContainer) async -> Bool, message: String?)
     
     // Connect with database (API)
     public static func unique(table: String, column: String, _ message: String? = nil) -> ValidationRule {
@@ -37,7 +37,34 @@ public enum ValidationRule: @unchecked Sendable {
     }
     
     // Connect with SwiftData
-    public static func unique<T: PersistentModel>(_ model: T.Type, field: String, _ message: String? = nil) -> ValidationRule {
-        return ._uniqueSwiftData(modelName: String(describing: model), field: field, message: message)
+    public static func unique<T: PersistentModel>(
+            model: T.Type,
+            field: KeyPath<T, String>,
+            _ message: String? = nil
+    ) -> ValidationRule {
+        let safeField = SafeKeyPath(keyPath: field)
+        
+        return ._uniqueSwiftData(check: { value, container in
+            let context = ModelContext(container)
+            let descriptor = FetchDescriptor<T>()
+            
+            do {
+                let safeKeyPath = safeField.keyPath
+                
+                let allRecords = try context.fetch(descriptor)
+                
+                let exists = allRecords.contains {
+                    $0[keyPath: safeKeyPath].lowercased() == value.lowercased()
+                }
+                
+                return !exists
+            } catch {
+                return false
+            }
+        }, message: message)
     }
+}
+
+private struct SafeKeyPath<Root, Value>: @unchecked Sendable {
+    let keyPath: KeyPath<Root, Value>
 }
