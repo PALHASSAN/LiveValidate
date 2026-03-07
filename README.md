@@ -46,3 +46,16 @@ struct RegisterView: View {
         }
     }
 }
+
+## 🚀 Setup & Usage
+
+### 1. Global Configuration
+Initialize the validation engine in your `App` entry point or `Preview` to enable uniqueness checks:
+
+#### **Option A: Remote API Engine**
+```swift
+ValidateConfig.setup(engine: .api(url: "http://yourapilink/"))
+
+#### **Option B: SwiftData**
+```swift
+ValidateConfig.setup(engine: .swiftData(container: yourSwiftData)))
