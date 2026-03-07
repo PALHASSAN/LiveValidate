@@ -5,6 +5,9 @@
 Add the package to your project via **Swift Package Manager (SPM)**:
 1. In Xcode: `File > Add Package Dependencies...`
 2. Enter URL: `https://github.com/alhassan/LiveValidate`
+```
+https://github.com/alhassan/LiveValidate
+```
 
 ## ✨ Features
 * **Real-time Validation:** Instant feedback as the user types.
