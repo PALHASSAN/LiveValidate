@@ -10,7 +10,7 @@ import SwiftData
 
 extension ValidationRule {
     func evaluate(_ value: String, attribute: String, cache: AsyncValidatorCache) async -> String? {
-        switch self {
+        switch self.type {
         case .name:
             return nil
             
@@ -64,7 +64,7 @@ extension ValidationRule {
             let isInvalid = !value.isEmpty && !values.contains(value)
             return isInvalid ? format(customMsg, "The selected :attribute is invalid.", attribute) : nil
             
-        case ._uniqueAPI(let table, let column, let customMsg):
+        case .uniqueAPI(let table, let column, let customMsg):
             guard let engine = await ValidateConfig.activeEngine,
                   case .api(let finalURL) = engine else { return nil }
             
@@ -137,7 +137,7 @@ extension ValidationRule {
             }
             return !isUniqueResult ? format(customMsg, "The :attribute has already been taken.", attribute) : nil
             
-        case ._uniqueSwiftData(let checkClosure, let customMsg):
+        case .uniqueSwiftData(let checkClosure, let customMsg):
             
             guard let engine = await ValidateConfig.activeEngine,
                   case .swiftData(let container) = engine else {

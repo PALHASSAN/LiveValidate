@@ -14,8 +14,8 @@ public protocol ValidatableField {
 
 @MainActor
 @propertyWrapper
-public struct Validate: DynamicProperty {
-    @State var value: String
+public struct Validate<Value>: DynamicProperty {
+    @State var value: Value
     @State public private(set) var error: String?
     
     @State private var debouncer = Debouncer(delay: 0.5)
@@ -24,7 +24,7 @@ public struct Validate: DynamicProperty {
     private let attributeName: String
     private let rules: [ValidationRule]
     
-    public var wrappedValue: String {
+    public var wrappedValue: Value {
         get { value }
         nonmutating set {
             value = newValue
@@ -34,9 +34,14 @@ public struct Validate: DynamicProperty {
         }
     }
     
-    public struct ValidationProxy {
-        public let binding: Binding<String>
+    public struct ValidationProxy: ValidatableField {
+        public let binding: Binding<Value>
         public let error: String?
+        let validateAction: @Sendable () async -> Bool
+        
+        public func checkIsValid() async -> Bool {
+            await validateAction()
+        }
     }
     
     public var projectedValue: ValidationProxy {
@@ -45,50 +50,24 @@ public struct Validate: DynamicProperty {
                 get: { self.wrappedValue },
                 set: { self.wrappedValue = $0 }
             ),
-            error: self.error
+            error: self.error,
+            validateAction: { await self.checkIsValid() }
         )
     }
     
-    public init(wrappedValue: String, _ rules: ValidationRule...) {
+    public init(wrappedValue: Value, _ rules: ValidationRule...) {
         self._value = State(initialValue: wrappedValue)
         self.rules = rules
         
         self.attributeName = rules.lazy.compactMap(\.extractedName).first ?? "field"
     }
     
-    static func validateAll(_ fields: any ValidatableField...) async -> Bool {
-        let mirror = Mirror(reflecting: self)
-        var isFormValid: Bool = true
-        
-        for child in mirror.children {
-            if let field = child.value as? any ValidatableField {
-                let isFieldValid = await field.checkIsValid()
-                if !isFieldValid {
-                    isFormValid = false
-                }
-            }
-        }
-        
-        return isFormValid
-    }
-    
-    static func validateOnly(_ fields: any ValidatableField...) async -> Bool {
-        var isFormValid: Bool = true
-        
-        for field in fields {
-            let isFiledValid = await field.checkIsValid()
-            if !isFiledValid {
-                isFormValid = false
-            }
-        }
-        
-        return isFormValid
-    }
-    
-    public func validate(_ value: String) async {
+    func validate(_ value: Value) async {
         error = nil
+        let stringValue = "\(value)"
+        
         for rule in rules {
-            if let validationError = await rule.evaluate(value, attribute: attributeName, cache: asyncCache) {
+            if let validationError = await rule.evaluate(stringValue, attribute: attributeName, cache: asyncCache) {
                 self.error = validationError
                 
                 return
@@ -99,10 +78,41 @@ public struct Validate: DynamicProperty {
 
 extension Validate: ValidatableField {
     public func checkIsValid() async -> Bool {
-        // Check the value.
+        // Check the value
         await self.validate(wrappedValue)
         
-        // Return true if there are not erorr
+        // Return true if there are not error
         return self.error == nil
+    }
+}
+
+// MARK: - Validate
+public extension View {
+    @MainActor
+    func validateAll() async -> Bool {
+        let mirror = Mirror(reflecting: self)
+        var isFormValid: Bool = true
+        
+        for child in mirror.children {
+            if let field = child.value as? any ValidatableField {
+                if await !field.checkIsValid() {
+                    isFormValid = false
+                }
+            }
+        }
+        return isFormValid
+    }
+    
+    @MainActor
+    func validateOnly(_ fields: any ValidatableField...) async -> Bool {
+        var isFormValid: Bool = true
+        
+        for field in fields {
+            if await !field.checkIsValid() {
+                isFormValid = false
+            }
+        }
+        
+        return isFormValid
     }
 }

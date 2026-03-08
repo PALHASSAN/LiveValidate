@@ -9,7 +9,7 @@ import SwiftUI
 
 extension SecureField where Label == Text {
     @MainActor
-    public init(_ titleKey: LocalizedStringKey, text proxy: Validate.ValidationProxy) {
-        self.init(titleKey, text: proxy.binding)
+    public init<T>(_ titleKey: LocalizedStringKey, text proxy: Validate<T>.ValidationProxy) {
+        self.init(titleKey, text: proxy.binding as! Binding<String>)
     }
 }

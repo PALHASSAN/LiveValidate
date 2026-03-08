@@ -6,62 +6,73 @@
 //
 
 import SwiftData
+import Foundation
 
-public enum ValidationRule: @unchecked Sendable {
-    case name(_ attrubiteName: String) // Optional. If the developer want to change attrubite name. By default "field"
+public struct ValidationRule: Sendable {
+    enum RuleType: @unchecked Sendable {
+        case name(String)
+        case required(String?)
+        case min(Int, String?)
+        case max(Int, String?)
+        case alpha(String?)
+        case alphaNum(String?)
+        case alphaDash(String?)
+        case email(String?)
+        case numeric(String?)
+        case match(String, String?)
+        case regex(String, String?)
+        case url(String?)
+        case digits(Int, String?)
+        case inList([String], String?)
+        case uniqueAPI(table: String, column: String, message: String?)
+        case uniqueSwiftData(check: @Sendable (String, ModelContainer) async -> Bool, message: String?)
+    }
+    
+    let type: RuleType
+    
     var extractedName: String? {
-        if case .name(let name) = self { return name }
+        if case .name(let name) = type { return name }
         return nil
     }
     
-    case required(_ message: String? = nil)
-    case min(_ length: Int, _ message: String? = nil)
-    case max(_ length: Int, _ message: String? = nil)
-    case alpha(_ message: String? = nil) // Only Letters
-    case alphaNum(_ message: String? = nil)
-    case alphaDash(_ message: String? = nil)
-    case email(_ message: String? = nil)
-    case numeric(_ message: String? = nil)
-    case match(_ value: String, _ message: String? = nil)
-    case regex(_ pattern: String, _ message: String? = nil)
-    case url(_ message: String? = nil)
-    case digits(_ length: Int, _ message: String? = nil)
-    case inList(_ values: [String], _ message: String? = nil)
+    init(type: RuleType) {
+        self.type = type
+    }
+}
+
+public extension ValidationRule {
+    static func name(_ attributeName: String) -> Self { .init(type: .name(attributeName)) }
+    static func required(_ message: String? = nil) -> Self { .init(type: .required(message)) }
+    static func min(_ length: Int, _ message: String? = nil) -> Self { .init(type: .min(length, message)) }
+    static func max(_ length: Int, _ message: String? = nil) -> Self { .init(type: .max(length, message)) }
+    static func alpha(_ message: String? = nil) -> Self { .init(type: .alpha(message)) }
+    static func alphaNum(_ message: String? = nil) -> Self { .init(type: .alphaNum(message)) }
+    static func alphaDash(_ message: String? = nil) -> Self { .init(type: .alphaDash(message)) }
+    static func email(_ message: String? = nil) -> Self { .init(type: .email(message)) }
+    static func numeric(_ message: String? = nil) -> Self { .init(type: .numeric(message)) }
+    static func match(_ value: String, _ message: String? = nil) -> Self { .init(type: .match(value, message)) }
+    static func regex(_ pattern: String, _ message: String? = nil) -> Self { .init(type: .regex(pattern, message)) }
+    static func url(_ message: String? = nil) -> Self { .init(type: .url(message)) }
+    static func digits(_ length: Int, _ message: String? = nil) -> Self { .init(type: .digits(length, message)) }
+    static func inList(_ values: [String], _ message: String? = nil) -> Self { .init(type: .inList(values, message)) }
     
-    case _uniqueAPI(table: String, column: String, message: String?)
-    case _uniqueSwiftData(check: @Sendable (String, ModelContainer) async -> Bool, message: String?)
-    
-    // Connect with database (API)
-    public static func unique(table: String, column: String, _ message: String? = nil) -> ValidationRule {
-        return ._uniqueAPI(table: table, column: column, message: message)
+    static func unique(table: String, column: String, _ message: String? = nil) -> Self {
+        .init(type: .uniqueAPI(table: table, column: column, message: message))
     }
     
-    // Connect with SwiftData
-    public static func unique<T: PersistentModel>(
-            model: T.Type,
-            field: KeyPath<T, String>,
-            _ message: String? = nil
-    ) -> ValidationRule {
+    static func unique<T: PersistentModel>(model: T.Type, field: KeyPath<T, String>, _ message: String? = nil) -> Self {
         let safeField = SafeKeyPath(keyPath: field)
-        
-        return ._uniqueSwiftData(check: { value, container in
+        return .init(type: .uniqueSwiftData(check: { value, container in
             let context = ModelContext(container)
             let descriptor = FetchDescriptor<T>()
-            
             do {
                 let safeKeyPath = safeField.keyPath
-                
                 let allRecords = try context.fetch(descriptor)
-                
-                let exists = allRecords.contains {
-                    $0[keyPath: safeKeyPath].lowercased() == value.lowercased()
-                }
-                
-                return !exists
+                return !allRecords.contains { $0[keyPath: safeKeyPath].lowercased() == value.lowercased() }
             } catch {
                 return false
             }
-        }, message: message)
+        }, message: message))
     }
 }
 

@@ -11,8 +11,8 @@ public struct ErrorMessage: View {
     let error: String?
     @State private var shakeEffect: CGFloat = 0
     
-    public init(_ error: String?) {
-        self.error = error
+    public init<T>(_ proxy: Validate<T>.ValidationProxy) {
+        self.error = proxy.error
     }
     
     public var body: some View {

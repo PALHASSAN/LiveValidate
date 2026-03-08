@@ -15,7 +15,7 @@ struct TestView: View {
     var phone: String = ""
     
     @Validate(.name("OTP"), .digits(4))
-    var otp: String = ""
+    var otp: Int = 0
     
     var body: some View {
         NavigationStack {
@@ -24,7 +24,7 @@ struct TestView: View {
                     VStack(alignment: .leading) {
                         TextField("Email", text: $email)
                             .textInputAutocapitalization(.never)
-                        ErrorMessage($email.error)
+                        ErrorMessage($email)
                     }
                     VStack(alignment: .leading) {
                         TextField("Phone number (05xxxxxxxx)", text: $phone)
@@ -41,6 +41,13 @@ struct TestView: View {
                             Text(error)
                                 .foregroundColor(.red)
                                 .font(.caption)
+                        }
+                    }
+                    Button("Login") {
+                        Task {
+                            if await validateOnly($phone, $email) {
+                                print("Welcome Back!")
+                            }
                         }
                     }
                 }
