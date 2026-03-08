@@ -11,9 +11,9 @@ https://github.com/PALHASSAN/LiveValidate.git
 
 ## ✨ Features
 * **Real-time Validation:** Instant feedback as the user types.
-* **Debounced Execution:** Prevents UI lag and excessive server hits.
+* **Smart Debouncing:** Prevents UI lag and excessive server hits.
 * **Dual-Engine Support:** Switch between **Remote API** and **Local SwiftData** effortlessly.
-* **Custom UI Components:** Includes `ErrorMessage` with built-in shake animations.
+* **Built-in UI Components:** Includes `ErrorMessage` with built-in shake animations.
 * **Strongly Typed:** Leverages Swift KeyPaths for safe database queries.
 
 ## 🛠 Supported Rules
@@ -41,13 +41,13 @@ Before using rules like .unique, you must initialize the validation engine once 
 #### **Option A: Remote API (Laravel/Nestjs/etc.)**
 Use this if you want to check uniqueness against a remote server. The package will send a POST request with a JSON body.
 ```swift
-ValidateConfig.setup(engine: .api(url: "http://yourapilink/"))
+ValidateConfig.setup(engine: .api(url: "https://api.example.com/"))
 ```
 
 #### **Option B: Local SwiftData**
 Use this if you are using Apple's SwiftData and want to check for unique records locally on the device.
 ```swift
-ValidateConfig.setup(engine: .swiftData(container: yourSwiftData)))
+ValidateConfig.setup(engine: .swiftData(container: sharedModelContainer)))
 ```
 
 ### 2. Property Validation & UI Integration
@@ -67,7 +67,7 @@ VStack(alignment: .leading) {
     TextField("Username", text: $username)
     
     // Pass the projected value's error ($username.error)
-    ErrorMessage($username.error) 
+    ErrorMessage($username) 
 }
 ```
 
@@ -81,7 +81,7 @@ If you need to verify a specific group of fields—such as a single section of a
 Button("Login") {
     Task {
         // Triggers validation for specific fields manually
-        let isValid = await Validate.validateOnly($email, $password, etc.)
+        let isValid = await Validate.validateOnly($email, $password, etc..)
         
         if isValid {
             // Proceed with login logic
@@ -95,8 +95,8 @@ For a complete form check before final submission, use the .validateAll(_:) meth
 ```swift
 Button("Register") {
     Task {
-        // Checks the validity of all form fields simultaneously
-        if await Validate.validateAll($email, $phone, $username) {
+        // validateAll() checks every @Validate field in the current View
+        if await validateAll() {
             print("Form is valid and ready for submission!")
         }
     }
@@ -115,7 +115,7 @@ struct RegisterView: View {
     var body: some View {
         Form {
             TextField("Email Address", text: $email)
-            ErrorMessage($email.error) // Built-in UI component
+            ErrorMessage($email) // Built-in UI component
         }
     }
 }
