@@ -8,22 +8,22 @@
 import Foundation
 
 actor AsyncValidatorCache {
-    private var tasks: [String: Task<Bool, Never>] = [:]
+    private var results: [String: Bool] = [:]
+    private var inProgress: [String: Task<Bool, Never>] = [:]
     
     init() {}
     
     func execute(key: String, operation: @escaping @Sendable () async -> Bool) async -> Bool {
-        if let existingTask = tasks[key] {
-            return await existingTask.value
-        }
+        if let cached = results[key] { return cached }
+        if let task = inProgress[key] { return await task.value }
         
-        let task = Task {
-            return await operation()
-        }
+        let task = Task { await operation() }
+        inProgress[key] = task
+        let result = await task.value
         
-        tasks[key] = task
-        tasks.removeValue(forKey: key)
-        
-        return await task.value
+        results[key] = result
+        inProgress.removeValue(forKey: key)
+                
+        return result
     }
 }

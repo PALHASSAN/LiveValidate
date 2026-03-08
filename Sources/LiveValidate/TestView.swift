@@ -28,20 +28,12 @@ struct TestView: View {
                     }
                     VStack(alignment: .leading) {
                         TextField("Phone number (05xxxxxxxx)", text: $phone)
-                        if let error = $phone.error {
-                            Text(error)
-                                .foregroundColor(.red)
-                                .font(.caption)
-                        }
+                        ErrorMessage($phone)
                     }
                     
                     VStack(alignment: .leading) {
                         TextField("OTP code", text: $otp)
-                        if let error = $otp.error {
-                            Text(error)
-                                .foregroundColor(.red)
-                                .font(.caption)
-                        }
+                        ErrorMessage($otp)
                     }
                     Button("Login") {
                         Task {
@@ -55,37 +47,10 @@ struct TestView: View {
             .navigationTitle("SWIFT Live Validate")
         }
     }
-    
-    
-    //    @State var vm = RegistrationViewModel()
-    //
-//        @Validate(
-//            .required(),
-//            .email(),
-//            .unique(check: { value in
-//                await RegistrationViewModel().checkEmailUnique(value)
-//            }, "Email already used. ❌")
-//        )
-    //    var email: String = ""
-    //
-    //    var body: some View {
-    //        Form {
-    //            Section("Email Address") {
-    //                TextField("Emal", text: $email)
-    //                    .autocapitalization(.none)
-    //
-    //                if let error = $email.error {
-    //                    Text(error)
-    //                        .foregroundColor(.red)
-    //                        .font(.caption)
-    //                }
-    //            }
-    //        }
-    //    }
 }
 
 #Preview {
-//    let _ = ValidateConfig.setup(engine: .api(url: "http://yourapilink/"))
-//    let _ = ValidateConfig.setup(engine: .swiftData(container: yourSwiftTable)))
+//    let _ = ValidateConfig.setup(engine: .api(url: "http://172.20.10.8:8000/api/check-email"))
+//    let _ = ValidateConfig.setup(engine: .swiftData(container: sharedModelContainer)))
     TestView()
 }

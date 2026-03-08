@@ -67,7 +67,11 @@ public struct Validate<Value>: DynamicProperty {
         let stringValue = "\(value)"
         
         for rule in rules {
-            if let validationError = await rule.evaluate(stringValue, attribute: attributeName, cache: asyncCache) {
+            if let validationError = await rule.evaluate(
+                stringValue,
+                attribute: attributeName,
+                cache: asyncCache
+            ) {
                 self.error = validationError
                 
                 return
@@ -83,36 +87,5 @@ extension Validate: ValidatableField {
         
         // Return true if there are not error
         return self.error == nil
-    }
-}
-
-// MARK: - Validate
-public extension View {
-    @MainActor
-    func validateAll() async -> Bool {
-        let mirror = Mirror(reflecting: self)
-        var isFormValid: Bool = true
-        
-        for child in mirror.children {
-            if let field = child.value as? any ValidatableField {
-                if await !field.checkIsValid() {
-                    isFormValid = false
-                }
-            }
-        }
-        return isFormValid
-    }
-    
-    @MainActor
-    func validateOnly(_ fields: any ValidatableField...) async -> Bool {
-        var isFormValid: Bool = true
-        
-        for field in fields {
-            if await !field.checkIsValid() {
-                isFormValid = false
-            }
-        }
-        
-        return isFormValid
     }
 }
