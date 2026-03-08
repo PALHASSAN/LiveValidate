@@ -22,8 +22,8 @@ https://github.com/PALHASSAN/LiveValidate.git
 | **`.name(String)`** | (Optional) Sets a custom attribute name for error messages. If not provided, it defaults to "field". |
 | **`.required()`** | Field cannot be empty or null. |
 | **`.email()`** | Validates standard email format. |
-| **`.unique(table:column:)`** | Remote check via API POST request (Server-side). |
-| **`.unique(model:field:)`** | Local check via **SwiftData** KeyPath (On-device). |
+| **`.unique(table: "", column: "")`** | Remote check via API POST request (Server-side). |
+| **`.unique(model: "", field: "")`** | Local check via **SwiftData** KeyPath (On-device). |
 | **`.min(Int) / .max(Int)`** | Enforces minimum or maximum character length. |
 | **`.numeric() / .alpha()`** | Restricts input to numbers only or letters only. |
 | **`.alphaNum()`** | Allows only letters and numbers. |
