@@ -59,7 +59,7 @@ struct TestView: View {
 }
 
 #Preview {
-//    let _ = ValidateConfig.setup(engine: .api(url: "http://172.20.10.8:8000/api/check-email"))
+    let _ = ValidateConfig.setup(engine: .api(url: "http://172.20.10.8:8000/api/check-email"))
 //    let _ = ValidateConfig.setup(engine: .swiftData(container: sharedModelContainer)))
     TestView()
 }

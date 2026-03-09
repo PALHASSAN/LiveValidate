@@ -27,12 +27,41 @@ public struct Validate<Value: Sendable>: DynamicProperty {
     public var wrappedValue: Value {
         get { value }
         nonmutating set {
-            value = newValue
-            let capturedValue = newValue
+            let sanitizedValue = sanitize(newValue)
+            value = sanitizedValue
+            
+            let capturedValue = sanitizedValue
             debouncer {
                 await validate(capturedValue)
             }
         }
+    }
+    
+    private func sanitize(_ incomingValue: Value) -> Value {
+        guard var text = incomingValue as? String else {
+            return incomingValue
+        }
+        
+        text = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        for rule in rules {
+            switch rule.type {
+            case .email:
+                text = text.lowercased()
+                
+            case .iban, .numeric, .digits:
+                text = text.replacingOccurrences(of: " ", with: "")
+                
+            default:
+                break
+            }
+        }
+        
+        if let finalValue = text as? Value {
+            return finalValue
+        }
+        
+        return incomingValue
     }
     
     public struct ValidationProxy: ValidatableField {
