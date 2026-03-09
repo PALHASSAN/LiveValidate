@@ -13,11 +13,13 @@ fileprivate let sharedDateFormatter = DateFormatter()
 
 extension ValidationRule {
     func evaluate(
-        _ value: String,
+        _ rawValue: any Sendable,
         attribute: String,
         cache: AsyncValidatorCache,
     ) async -> String? {
-        let trimmedValue = value.trimmingCharacters(in: .whitespaces)
+        let stringValue = (rawValue as? String) ?? "\(rawValue)"
+        let trimmedValue = stringValue.trimmingCharacters(in: .whitespaces)
+        let value = stringValue
         
         switch self.type {
         case .name:
@@ -114,33 +116,36 @@ extension ValidationRule {
             return Double(trimmedValue) == nil ? format(customMsg, "The :attribute must be a decimal number.", attribute) : nil
             
         case .date(let customMsg):
+            if rawValue is Date { return nil }
             return sharedISOFormatter.date(from: trimmedValue) == nil ? format(customMsg, "The :attribute is not a valid date.", attribute) : nil
             
         case .dateFormat(let formatStr, let customMsg):
+            if rawValue is Date { return nil }
             sharedDateFormatter.dateFormat = formatStr
             return sharedDateFormatter.date(from: trimmedValue) == nil ? format(customMsg, "The :attribute does not match the format :value.", attribute, formatStr) : nil
             
         case .after(let date, let customMsg):
-            guard let inputDate = sharedISOFormatter.date(from: trimmedValue) else { return nil }
+            guard let inputDate = (rawValue as? Date) ?? sharedISOFormatter.date(from: trimmedValue) else { return nil }
             let dateStr = sharedISOFormatter.string(from: date)
             return inputDate <= date ? format(customMsg, "The :attribute must be a date after :value.", attribute, dateStr) : nil
             
         case .afterOrEqual(let date, let customMsg):
-            guard let inputDate = sharedISOFormatter.date(from: trimmedValue) else { return nil }
+            guard let inputDate = (rawValue as? Date) ?? sharedISOFormatter.date(from: trimmedValue) else { return nil }
             let dateStr = sharedISOFormatter.string(from: date)
             return inputDate < date ? format(customMsg, "The :attribute must be a date after or equal to :value.", attribute, dateStr) : nil
             
         case .before(let date, let customMsg):
-            guard let inputDate = sharedISOFormatter.date(from: trimmedValue) else { return nil }
+            guard let inputDate = (rawValue as? Date) ?? sharedISOFormatter.date(from: trimmedValue) else { return nil }
             let dateStr = sharedISOFormatter.string(from: date)
             return inputDate >= date ? format(customMsg, "The :attribute must be a date before :value.", attribute, dateStr) : nil
             
         case .beforeOrEqual(let date, let customMsg):
-            guard let inputDate = sharedISOFormatter.date(from: trimmedValue) else { return nil }
+            guard let inputDate = (rawValue as? Date) ?? sharedISOFormatter.date(from: trimmedValue) else { return nil }
             let dateStr = sharedISOFormatter.string(from: date)
             return inputDate > date ? format(customMsg, "The :attribute must be a date before or equal to :value.", attribute, dateStr) : nil
             
         case .boolean(let customMsg):
+            if rawValue is Bool { return nil }
             let bools = ["true", "false", "1", "0", "yes", "no"]
             return !bools.contains(trimmedValue.lowercased()) ? format(customMsg, "The :attribute field must be true or false.", attribute) : nil
             

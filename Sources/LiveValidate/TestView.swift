@@ -11,33 +11,42 @@ struct TestView: View {
     @Validate(.name("Email"), .required(), .email(), .unique(table: "users", column: "email"))
     var email: String = ""
     
-    @Validate(.name("Phone Number"), .required(), .regex("^05[0-9]{8}$"))
-    var phone: String = ""
+    @Validate(.name("Username"), .required(), .between(3, 24))
+    var username: String = ""
     
-    @Validate(.name("OTP"), .between(3, 15))
-    var otp: String = ""
+    @Validate(.name("Password"), .required(), .min(8), .max(24))
+    var password: String = ""
+    
+    @Validate(.name("Birth Date"), .required(), .date(), .before(Date()))
+    var birthDate: Date = Date()
     
     var body: some View {
         NavigationStack {
             Form {
-                Section("Login Form") {
+                Section("Register Form") {
                     VStack(alignment: .leading) {
                         TextField("Email", text: $email)
                             .textInputAutocapitalization(.never)
                         ErrorMessage($email)
                     }
                     VStack(alignment: .leading) {
-                        TextField("Phone number (05xxxxxxxx)", text: $phone)
-                        ErrorMessage($phone)
+                        TextField("Username", text: $username)
+                        ErrorMessage($username)
                     }
                     
                     VStack(alignment: .leading) {
-                        TextField("OTP code", text: $otp)
-                        ErrorMessage($otp)
+                        TextField("Password", text: $password)
+                        ErrorMessage($password)
                     }
+                    
+                    VStack(alignment: .leading) {
+                        DatePicker("Birth date", selection: $birthDate, displayedComponents: .date)
+                        ErrorMessage($birthDate)
+                    }
+                    
                     Button("Login") {
                         Task {
-                            if await validateOnly($phone, $email) {
+                            if await validateAll() {
                                 print("Welcome Back!")
                             }
                         }

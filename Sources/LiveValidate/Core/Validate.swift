@@ -14,7 +14,7 @@ public protocol ValidatableField {
 
 @MainActor
 @propertyWrapper
-public struct Validate<Value>: DynamicProperty {
+public struct Validate<Value: Sendable>: DynamicProperty {
     @State var value: Value
     @State public private(set) var error: String?
     
@@ -28,8 +28,9 @@ public struct Validate<Value>: DynamicProperty {
         get { value }
         nonmutating set {
             value = newValue
+            let capturedValue = newValue
             debouncer {
-                await validate(newValue)
+                await validate(capturedValue)
             }
         }
     }
@@ -64,16 +65,14 @@ public struct Validate<Value>: DynamicProperty {
     
     func validate(_ value: Value) async {
         error = nil
-        let stringValue = "\(value)"
         
         for rule in rules {
             if let validationError = await rule.evaluate(
-                stringValue,
+                value,
                 attribute: attributeName,
                 cache: asyncCache
             ) {
                 self.error = validationError
-                
                 return
             }
         }
