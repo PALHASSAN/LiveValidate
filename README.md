@@ -66,7 +66,7 @@ Use the built-in ErrorMessage view to display validation errors automatically. I
 VStack(alignment: .leading) {
     TextField("Username", text: $username)
     
-    // Pass the projected value's error ($username.error)
+    // Pass the projected value's error ($username)
     ErrorMessage($username) 
 }
 ```
