@@ -14,8 +14,8 @@ struct TestView: View {
     @Validate(.name("Phone Number"), .required(), .regex("^05[0-9]{8}$"))
     var phone: String = ""
     
-    @Validate(.name("OTP"), .digits(4))
-    var otp: Int = 0
+    @Validate(.name("OTP"), .between(3, 15))
+    var otp: String = ""
     
     var body: some View {
         NavigationStack {

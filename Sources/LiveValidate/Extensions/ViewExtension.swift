@@ -24,7 +24,7 @@ public extension View {
     @MainActor
     func validateOnly(_ fields: any ValidatableField...) async -> Bool {
         var isFormValid: Bool = true
-        let mirror = Mirror(reflecting: self)
+//        let mirror = Mirror(reflecting: self)
 //        let customMsgs = extractValidationMessages(from: mirror)
         
         for field in fields {

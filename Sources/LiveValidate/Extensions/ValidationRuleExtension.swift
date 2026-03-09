@@ -8,12 +8,17 @@
 import Foundation
 import SwiftData
 
+nonisolated(unsafe) fileprivate let sharedISOFormatter = ISO8601DateFormatter()
+fileprivate let sharedDateFormatter = DateFormatter()
+
 extension ValidationRule {
     func evaluate(
         _ value: String,
         attribute: String,
         cache: AsyncValidatorCache,
     ) async -> String? {
+        let trimmedValue = value.trimmingCharacters(in: .whitespaces)
+        
         switch self.type {
         case .name:
             return nil
@@ -22,13 +27,17 @@ extension ValidationRule {
             let isEmpty = value.trimmingCharacters(in: .whitespaces).isEmpty
             return isEmpty ? format(customMsg, "The :attribute is required.", attribute) : nil
             
+        case .requiredIf(let condition, let msg):
+            if condition && trimmedValue.isEmpty {
+                return format(msg, "The :attribute field is required.", attribute)
+            }
+            return nil
+            
         case .min(let length, let customMsg):
-            let isInvalid = value.count < length
-            return isInvalid ? format(customMsg, "The :attribute must be at least \(length) characters.", attribute) : nil
+            return value.count < length ? format(customMsg, "The :attribute must be at least :value characters.", attribute, "\(length)") : nil
             
         case .max(let length, let customMsg):
-            let isInvalid = value.count > length
-            return isInvalid ? format(customMsg, "The :attribute must not be greater than \(length) characters.", attribute) : nil
+            return value.count > length ? format(customMsg, "The :attribute must not be greater than :value characters.", attribute, "\(length)") : nil
             
         case .numeric(let customMsg):
             let isInvalid = !value.allSatisfy(\.isNumber)
@@ -50,7 +59,7 @@ extension ValidationRule {
             return value != targetValue ? format(customMsg, "The :attribute confirmation does not match.", attribute) : nil
             
         case .email(let customMsg):
-            let isInvalid = try? Regex("[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,64}").firstMatch(in: value) == nil
+            let isInvalid = try? /[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,64}/.firstMatch(in: value) == nil
             return (isInvalid ?? true) ? format(customMsg, "The :attribute must be a valid email address.", attribute) : nil
             
         case .regex(let pattern, let customMsg):
@@ -66,7 +75,7 @@ extension ValidationRule {
         case .digits(let length, let customMsg):
             if value.isEmpty { return nil }
             let isInvalid = !value.allSatisfy(\.isNumber) || value.count != length
-            return isInvalid ? format(customMsg, "The :attribute must be exactly :value digits.", attribute) : nil
+            return isInvalid ? format(customMsg, "The :attribute must be exactly :value digits.", attribute, "\(length)") : nil
             
         case .inList(let values, let customMsg):
             let isInvalid = !value.isEmpty && !values.contains(value)
@@ -93,11 +102,59 @@ extension ValidationRule {
             }
             
             return !isUniqueResult ? format(customMsg, "The :attribute has already been taken.", attribute) : nil
+            
+        case .between(let min, let max, let customMsg):
+            let isInvalid = value.count < min || value.count > max
+            return isInvalid ? format(customMsg, "The :attribute must be between :value characters.", attribute, "\(min)-\(max)") : nil
+            
+        case .integer(let customMsg):
+            return Int(trimmedValue) == nil ? format(customMsg, "The :attribute must be an integer.", attribute) : nil
+            
+        case .decimal(let customMsg):
+            return Double(trimmedValue) == nil ? format(customMsg, "The :attribute must be a decimal number.", attribute) : nil
+            
+        case .date(let customMsg):
+            return sharedISOFormatter.date(from: trimmedValue) == nil ? format(customMsg, "The :attribute is not a valid date.", attribute) : nil
+            
+        case .dateFormat(let formatStr, let customMsg):
+            sharedDateFormatter.dateFormat = formatStr
+            return sharedDateFormatter.date(from: trimmedValue) == nil ? format(customMsg, "The :attribute does not match the format :value.", attribute, formatStr) : nil
+            
+        case .after(let date, let customMsg):
+            guard let inputDate = sharedISOFormatter.date(from: trimmedValue) else { return nil }
+            let dateStr = sharedISOFormatter.string(from: date)
+            return inputDate <= date ? format(customMsg, "The :attribute must be a date after :value.", attribute, dateStr) : nil
+            
+        case .afterOrEqual(let date, let customMsg):
+            guard let inputDate = sharedISOFormatter.date(from: trimmedValue) else { return nil }
+            let dateStr = sharedISOFormatter.string(from: date)
+            return inputDate < date ? format(customMsg, "The :attribute must be a date after or equal to :value.", attribute, dateStr) : nil
+            
+        case .before(let date, let customMsg):
+            guard let inputDate = sharedISOFormatter.date(from: trimmedValue) else { return nil }
+            let dateStr = sharedISOFormatter.string(from: date)
+            return inputDate >= date ? format(customMsg, "The :attribute must be a date before :value.", attribute, dateStr) : nil
+            
+        case .beforeOrEqual(let date, let customMsg):
+            guard let inputDate = sharedISOFormatter.date(from: trimmedValue) else { return nil }
+            let dateStr = sharedISOFormatter.string(from: date)
+            return inputDate > date ? format(customMsg, "The :attribute must be a date before or equal to :value.", attribute, dateStr) : nil
+            
+        case .boolean(let customMsg):
+            let bools = ["true", "false", "1", "0", "yes", "no"]
+            return !bools.contains(trimmedValue.lowercased()) ? format(customMsg, "The :attribute field must be true or false.", attribute) : nil
+            
+        case .iban(let customMsg):
+            let cleanIban = trimmedValue.replacingOccurrences(of: " ", with: "")
+            let isInvalid = try? /^[A-Z]{2}[0-9]{2}[A-Z0-9]{4,30}$/.firstMatch(in: cleanIban) == nil
+            return (isInvalid ?? true) ? format(customMsg, "The :attribute is not a valid IBAN.", attribute) : nil
         }
     }
     
-    private func format(_ manualMessage: String?, _ defaultMessage: String, _ attribute: String) -> String {
-        return (manualMessage ?? defaultMessage).replacingOccurrences(of: ":attribute", with: attribute)
+    private func format(_ manualMessage: String?, _ defaultMessage: String, _ attribute: String, _ value: String = "") -> String {
+        return (manualMessage ?? defaultMessage)
+            .replacingOccurrences(of: ":attribute", with: attribute)
+            .replacingOccurrences(of: ":value", with: value)
     }
     
     private func performAPICheck(value: String, table: String, column: String, cache: AsyncValidatorCache) async -> Bool {

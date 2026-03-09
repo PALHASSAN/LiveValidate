@@ -26,6 +26,18 @@ public struct ValidationRule: Sendable {
         case inList([String], String?)
         case uniqueAPI(table: String, column: String, message: String?)
         case uniqueSwiftData(check: @Sendable (String, ModelContainer) async -> Bool, message: String?)
+        case between(Int, Int, String?)
+        case integer(String?)
+        case decimal(String?)
+        case date(String?)
+        case dateFormat(String, String?)
+        case after(Date, String?)
+        case afterOrEqual(Date, String?)
+        case before(Date, String?)
+        case beforeOrEqual(Date, String?)
+        case boolean(String?)
+        case iban(String?)
+        case requiredIf(Bool, String?)
     }
     
     let type: RuleType
@@ -46,11 +58,17 @@ public extension ValidationRule {
     /// If not provided, it defaults to "field".
     ///
     /// - Parameter attributeName: The custom name (e.g., "Email Address") to be used in validation messages.
-        static func name(_ attributeName: String) -> Self { .init(type: .name(attributeName)) }
+    static func name(_ attributeName: String) -> Self { .init(type: .name(attributeName)) }
     
     /// Ensures the field is not empty and does not contain only whitespace.
     /// - Parameter message: A custom error message.
     static func required(_ message: String? = nil) -> Self { .init(type: .required(message)) }
+    
+    /// Validates that the field is required only if a specific condition is met.
+    /// - Parameters:
+    ///   - condition: The boolean condition that triggers the requirement.
+    ///   - message: A custom error message.
+    static func requiredIf(_ condition: Bool, _ message: String? = nil) -> Self { .init(type: .requiredIf(condition, message)) }
     
     /// Validates that the input length is at least the specified number of characters.
     /// - Parameters:
@@ -140,6 +158,63 @@ public extension ValidationRule {
             }
         }, message: message))
     }
+    
+    /// Validates that the input length is between a minimum and maximum number of characters.
+    /// - Parameters:
+    ///   - min: The minimum allowed length.
+    ///   - max: The maximum allowed length.
+    ///   - message: A custom error message.
+    static func between(_ min: Int, _ max: Int, _ message: String? = nil) -> Self { .init(type: .between(min, max, message)) }
+    
+    /// Validates that the input is a valid integer.
+    /// - Parameter message: A custom error message.
+    static func integer(_ message: String? = nil) -> Self { .init(type: .integer(message)) }
+    
+    /// Validates that the input is a valid decimal number.
+    /// - Parameter message: A custom error message.
+    static func decimal(_ message: String? = nil) -> Self { .init(type: .decimal(message)) }
+    
+    /// Validates that the input follows a standard ISO8601 date format.
+    /// - Parameter message: A custom error message.
+    static func date(_ message: String? = nil) -> Self { .init(type: .date(message)) }
+    
+    /// Validates that the input follows a specific date format.
+    /// - Parameters:
+    ///   - format: The expected date format (e.g., "yyyy-MM-dd").
+    ///   - message: A custom error message.
+    static func dateFormat(_ format: String, _ message: String? = nil) -> Self { .init(type: .dateFormat(format, message)) }
+    
+    /// Validates that the input date is after a specified date.
+    /// - Parameters:
+    ///   - date: The reference date for comparison.
+    ///   - message: A custom error message.
+    static func after(_ date: Date, _ message: String? = nil) -> Self { .init(type: .after(date, message)) }
+    
+    /// Validates that the input date is after or equal to a specified date.
+    /// - Parameters:
+    ///   - date: The reference date for comparison.
+    ///   - message: A custom error message.
+    static func afterOrEqual(_ date: Date, _ message: String? = nil) -> Self { .init(type: .afterOrEqual(date, message)) }
+    
+    /// Validates that the input date is before a specified date.
+    /// - Parameters:
+    ///   - date: The reference date for comparison.
+    ///   - message: A custom error message.
+    static func before(_ date: Date, _ message: String? = nil) -> Self { .init(type: .before(date, message)) }
+    
+    /// Validates that the input date is before or equal to a specified date.
+    /// - Parameters:
+    ///   - date: The reference date for comparison.
+    ///   - message: A custom error message.
+    static func beforeOrEqual(_ date: Date, _ message: String? = nil) -> Self { .init(type: .beforeOrEqual(date, message)) }
+    
+    /// Validates that the input represents a boolean value (e.g., true, false, 1, 0).
+    /// - Parameter message: A custom error message.
+    static func boolean(_ message: String? = nil) -> Self { .init(type: .boolean(message)) }
+    
+    /// Validates that the input follows a valid International Bank Account Number (IBAN) format.
+    /// - Parameter message: A custom error message.
+    static func iban(_ message: String? = nil) -> Self { .init(type: .iban(message)) }
 }
 
 private struct SafeKeyPath<Root, Value>: @unchecked Sendable {
