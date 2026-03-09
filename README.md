@@ -17,22 +17,38 @@ https://github.com/PALHASSAN/LiveValidate.git
 * **Strongly Typed:** Leverages Swift KeyPaths for safe database queries.
 
 ## 🛠 Supported Rules
+### 1. Core & Logic Rules
 | Rule | Description |
 | :--- | :--- |
-| **`.name(String)`** | (Optional) Sets a custom attribute name for error messages. If not provided, it defaults to "field". |
-| **`.required()`** | Field cannot be empty or null. |
-| **`.email()`** | Validates standard email format. |
-| **`.unique(table: "", column: "")`** | Remote check via API POST request (Server-side). |
-| **`.unique(model: "", field: "")`** | Local check via **SwiftData** KeyPath (On-device). |
-| **`.min(Int) / .max(Int)`** | Enforces minimum or maximum character length. |
-| **`.numeric() / .alpha()`** | Restricts input to numbers only or letters only. |
-| **`.alphaNum()`** | Allows only letters and numbers. |
-| **`.alphaDash()`** | Allows letters, numbers, dashes, and underscores. |
-| **`.digits(Int)`** | Requires a specific number of digits (e.g., OTP or Pin). |
-| **`.match(String)`** | Ensures the value matches another field (e.g., Password Confirmation). |
-| **`.regex(Pattern)`** | Validates against a custom Regular Expression. |
-| **`.url()`** | Validates URL format. |
-| **`.inList([String])`** | Restricts input to a specific predefined list of values. |
+| **`.name(String)`** | Sets a custom attribute name (e.g., "Phone Number"). |
+| **`.required()`** | Field cannot be empty. For `Bool`, it must be `true`. |
+| **`.requiredIf(Bool)`** | Required only if the specific condition is true. |
+| **`.match(String)`** | Ensures value matches another string (e.g., password confirmation). |
+| **`.boolean()`** | Validates truthy values (`true`, `1`, `"yes"`, `"no"`). |
+
+### 2. String & Numeric Rules
+| Rule | Description |
+| :--- | :--- |
+| **`.min(Int) / .max(Int)`** | Enforces character length limits. |
+| **`.between(Int, Int)`** | Enforces a range (e.g., `.between(4, 12)`). |
+| **`.numeric() / .alpha()`** | Numbers only or Letters only. |
+| **`.alphaNum() / .alphaDash()`** | Alphanumeric or Alphanumeric with dashes/underscores. |
+| **`.digits(Int)`** | Exactly N digits (useful for OTP/PIN). |
+| **`.integer() / .decimal()`** | Ensures the input is a valid number/decimal. |
+| **`.email() / .url()`** | Validates standard Email or URL formats. |
+| **`.iban()`** | Validates International Bank Account Number format (removes spaces). |
+| **`.regex(Pattern)`** | Custom Regular Expression validation. |
+
+### 3. Date Rules (Native DatePicker Support)
+| Rule | Description |
+| :--- | :--- |
+| **`.date()`** | Validates standard ISO8601 date strings. |
+| **`.dateFormat(String)`** | Validates against a custom format (e.g., "yyyy-MM-dd"). |
+| **`.after(Date)`** | Ensures date is strictly after a reference date. |
+| **`.before(Date)`** | Ensures date is strictly before a reference date (e.g., Birthdays). |
+| **`.afterOrEqual(Date)`** | Date must be equal to or after the reference. |
+
+---
 
 ## 🚀 Setup & Usage
 ### 1. Global Configuration
@@ -66,7 +82,7 @@ Use the built-in ErrorMessage view to display validation errors automatically. I
 VStack(alignment: .leading) {
     TextField("Username", text: $username)
     
-    // Pass the projected value's error ($username.error)
+    // Pass the projected value's error ($username)
     ErrorMessage($username) 
 }
 ```
@@ -103,19 +119,47 @@ Button("Register") {
 }
 ```
 
+### 🎨 Customizing Messages
+Dynamic placeholders make your messages user-friendly:
+```swift
+    @Validate(.between(5, 10, "The :attribute must be between :value characters."))
+    var password: String = ""
+    // Result: "The Password must be between 5-10 characters."
+```
+
 ### 🚀 Usage Example
 ```swift
 import SwiftUI
 import LiveValidate
 
 struct RegisterView: View {
-    @Validate(.name("Email"), .required(), .email(), .unique(table: "users", column: "email"))
-    var email: String = ""
+    // String Validation
+    @Validate(.name("Username"), .required(), .min(3))
+    var username: String = ""
+
+    // Date Validation (Supports DatePicker natively)
+    @Validate(.name("Birth Date"), .before(Date()))
+    var birthDate: Date = Date()
+    
+    // Boolean Validation (Supports Toggle natively)
+    @Validate(.name("Terms"), .required("You must accept the :attribute"))
+    var agreed: Bool = false
 
     var body: some View {
-        Form {
-            TextField("Email Address", text: $email)
-            ErrorMessage($email) // Built-in UI component
+       Form {
+            Section("Profile") {
+                TextField("Username", text: $username)
+                ErrorMessage($username)
+                
+                // No .binding needed! Just use $
+                DatePicker("Birthday", selection: $birthDate, displayedComponents: .date)
+                ErrorMessage($birthDate)
+            }
+            
+            Section {
+                Toggle("Accept Terms", isOn: $agreed)
+                ErrorMessage($agreed)
+            }
         }
     }
 }
