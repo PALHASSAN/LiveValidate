@@ -119,19 +119,47 @@ Button("Register") {
 }
 ```
 
+### 🎨 Customizing Messages
+Dynamic placeholders make your messages user-friendly:
+```swift
+    @Validate(.between(5, 10, "The :attribute must be between :value characters."))
+    var password: String = ""
+    // Result: "The Password must be between 5-10 characters."
+```
+
 ### 🚀 Usage Example
 ```swift
 import SwiftUI
 import LiveValidate
 
 struct RegisterView: View {
-    @Validate(.name("Email"), .required(), .email(), .unique(table: "users", column: "email"))
-    var email: String = ""
+    // String Validation
+    @Validate(.name("Username"), .required(), .min(3))
+    var username: String = ""
+
+    // Date Validation (Supports DatePicker natively)
+    @Validate(.name("Birth Date"), .before(Date()))
+    var birthDate: Date = Date()
+    
+    // Boolean Validation (Supports Toggle natively)
+    @Validate(.name("Terms"), .required("You must accept the :attribute"))
+    var agreed: Bool = false
 
     var body: some View {
-        Form {
-            TextField("Email Address", text: $email)
-            ErrorMessage($email) // Built-in UI component
+       Form {
+            Section("Profile") {
+                TextField("Username", text: $username)
+                ErrorMessage($username)
+                
+                // No .binding needed! Just use $
+                DatePicker("Birthday", selection: $birthDate, displayedComponents: .date)
+                ErrorMessage($birthDate)
+            }
+            
+            Section {
+                Toggle("Accept Terms", isOn: $agreed)
+                ErrorMessage($agreed)
+            }
         }
     }
 }
