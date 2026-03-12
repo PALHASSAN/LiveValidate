@@ -13,6 +13,9 @@ public struct ValidateConfig {
     public enum Engine: Sendable {
         case api(url: String)
         case swiftData(container: ModelContainer)
+        
+        // Any DB package like BoltSpark
+        case custom(uniqueCheck: @Sendable (_ table: String, _ column: String, _ value: String) async -> Bool)
     }
     
     public static var activeEngine: Engine?

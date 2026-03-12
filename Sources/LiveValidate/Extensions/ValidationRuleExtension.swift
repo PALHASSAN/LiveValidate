@@ -84,6 +84,14 @@ extension ValidationRule {
             return isInvalid ? format(customMsg, "The selected :attribute is invalid.", attribute) : nil
             
         case .uniqueAPI(let table, let column, let customMsg):
+            let trimmedValue = value.trimmingCharacters(in: .whitespaces)
+            
+            if let engine = await ValidateConfig.activeEngine, case .custom(let checkClosure) = engine {
+                let isUnique = await cache.execute(key: "unique_custom_\(table)_\(column)_\(trimmedValue)") {
+                    return await checkClosure(table, column, trimmedValue)
+                }
+                return !isUnique ? format(customMsg, "The :attribute has already been taken.", attribute) : nil
+            }
             let isUnique = await performAPICheck(value: value, table: table, column: column, cache: cache)
             return !isUnique ? format(customMsg, "The :attribute has already been taken.", attribute) : nil
             
