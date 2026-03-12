@@ -84,16 +84,23 @@ extension ValidationRule {
             return isInvalid ? format(customMsg, "The selected :attribute is invalid.", attribute) : nil
             
         case .uniqueAPI(let table, let column, let customMsg):
-            let trimmedValue = value.trimmingCharacters(in: .whitespaces)
-            
-            if let engine = await ValidateConfig.activeEngine, case .custom(let checkClosure) = engine {
-                let isUnique = await cache.execute(key: "unique_custom_\(table)_\(column)_\(trimmedValue)") {
-                    return await checkClosure(table, column, trimmedValue)
+            if let engine = await ValidateConfig.activeEngine {
+                switch engine {
+                case .custom(let verifier):
+                    let count = await cache.execute(key: "unique_db_\(table)_\(column)_\(trimmedValue)") {
+                        return await verifier.count(table: table, column: column, value: trimmedValue)
+                    }
+                    return count == 0 ? nil : format(customMsg, "The :attribute has already been taken.", attribute)
+                    
+                case .api:
+                    let isUnique = await performAPICheck(value: value, table: table, column: column, cache: cache)
+                    return !isUnique ? format(customMsg, "The :attribute has already been taken.", attribute) : nil
+                    
+                case .swiftData:
+                    return "⚠️ Please use .uniqueSwiftData() for SwiftData."
                 }
-                return !isUnique ? format(customMsg, "The :attribute has already been taken.", attribute) : nil
             }
-            let isUnique = await performAPICheck(value: value, table: table, column: column, cache: cache)
-            return !isUnique ? format(customMsg, "The :attribute has already been taken.", attribute) : nil
+            return nil
             
         case .uniqueSwiftData(let checkClosure, let customMsg):
             guard let engine = await ValidateConfig.activeEngine,

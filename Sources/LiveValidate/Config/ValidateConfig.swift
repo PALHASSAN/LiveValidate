@@ -8,14 +8,18 @@
 import SwiftData
 import Foundation
 
+public protocol DatabasePresenceVerifier: Sendable {
+    func count(table: String, column: String, value: String) async -> Int
+}
+
 @MainActor
 public struct ValidateConfig {
-    public enum Engine: Sendable {
+    public enum Engine: @unchecked Sendable {
         case api(url: String)
         case swiftData(container: ModelContainer)
         
         // Any DB package like BoltSpark
-        case custom(uniqueCheck: @Sendable (_ table: String, _ column: String, _ value: String) async -> Bool)
+        case custom(DatabasePresenceVerifier)
     }
     
     public static var activeEngine: Engine?
